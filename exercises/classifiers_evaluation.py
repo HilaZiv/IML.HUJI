@@ -38,14 +38,22 @@ def run_perceptron():
     """
     for n, f in [("Linearly Separable", "linearly_separable.npy"), ("Linearly Inseparable", "linearly_inseparable.npy")]:
         # Load dataset
-        raise NotImplementedError()
+        X, y_true = load_dataset("../datasets/" + f)
 
         # Fit Perceptron and record loss in each fit iteration
         losses = []
-        raise NotImplementedError()
+
+        def calculate_loss(fit: Perceptron, x: np.ndarray, y: int):
+            losses.append(fit.loss(X, y_true))
+
+        Perceptron(callback=calculate_loss).fit(X, y_true)
 
         # Plot figure of loss as function of fitting iteration
-        raise NotImplementedError()
+        loss_as_function_of_fitting_iteration_plot = \
+            px.line(x=np.arange(1, len(losses) + 1), y=losses,
+                    title="Loss as a function of fitting iteration using " + n + " data",
+                    labels=dict(x="Iteration", y="Loss"), markers=True)
+        loss_as_function_of_fitting_iteration_plot.show()
 
 
 def get_ellipse(mu: np.ndarray, cov: np.ndarray):
@@ -79,25 +87,47 @@ def compare_gaussian_classifiers():
     """
     for f in ["gaussian1.npy", "gaussian2.npy"]:
         # Load dataset
-        raise NotImplementedError()
-
+        X, y = load_dataset("../datasets/" + f)
         # Fit models and predict over training set
-        raise NotImplementedError()
+        lda = LDA()
+        gnb = GaussianNaiveBayes()
+        lda_pred = lda.fit(X, y).predict(X)
+        gnb_pred = gnb.fit(X, y).predict(X)
 
         # Plot a figure with two suplots, showing the Gaussian Naive Bayes predictions on the left and LDA predictions
         # on the right. Plot title should specify dataset used and subplot titles should specify algorithm and accuracy
         # Create subplots
         from IMLearn.metrics import accuracy
-        raise NotImplementedError()
+        models = [lda, gnb]
+        predictions = [lda_pred, gnb_pred]
+        subplots_names = ["LDA prediction", "GNB prediction"]
+        fig = make_subplots(rows=1, cols=2,
+        subplot_titles=[rf"$\textbf{{{subplots_names[i]} with accuracy {accuracy(y, predictions[i])}}}$" for i in range(2)],
+        horizontal_spacing=0.01, vertical_spacing=.03)
 
         # Add traces for data-points setting symbols and colors
-        raise NotImplementedError()
+        for i, p in enumerate(predictions):
+            fig.add_traces([go.Scatter(x=X.T[0], y=X.T[1], mode="markers",
+                                       marker=dict(color=predictions[i], symbol=y), showlegend=False)], rows=1, cols=i+1)
 
         # Add `X` dots specifying fitted Gaussians' means
-        raise NotImplementedError()
+        for i, m in enumerate(models):
+            for k in lda.classes_:
+                fig.add_trace(row=1, col=i+1,
+                              trace=go.Scatter(x=[m.mu_[k][0]], y=[m.mu_[k][1]], mode="markers",
+                                               marker=go.scatter.Marker(color="black", symbol=4, size=15)))
 
         # Add ellipses depicting the covariances of the fitted Gaussians
-        raise NotImplementedError()
+        for k in range(len(lda.classes_)):
+            # LDA cov
+            fig.add_trace(row=1, col=1, trace=get_ellipse(lda.mu_[k], lda.cov_))
+
+            # GNB cov
+            fig.add_trace(row=1, col=2, trace=get_ellipse(gnb.mu_[k], np.diag(gnb.vars_[k])))
+
+        fig.update_layout(
+            title=rf"$\textbf{{LDA and GNB predictions over %s}}$" % f,
+            margin=dict(t=80)).update_xaxes(visible=True).update_yaxes(visible=True).show()
 
 
 if __name__ == '__main__':
