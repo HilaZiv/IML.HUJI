@@ -52,7 +52,7 @@ class PolynomialFitting(BaseEstimator):
             Predicted responses of given samples
         """
         X = self.__transform(X)
-        self.linear_regression_.predict(X)
+        return self.linear_regression_.predict(X)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -88,3 +88,4 @@ class PolynomialFitting(BaseEstimator):
             Vandermonde matrix of given samples up to degree k
         """
         return np.vander(X, self.k_ + 1, increasing=True)
+
