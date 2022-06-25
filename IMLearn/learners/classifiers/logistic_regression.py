@@ -88,7 +88,17 @@ class LogisticRegression(BaseEstimator):
         Fits model using specified `self.optimizer_` passed when instantiating class and includes an intercept
         if specified by `self.include_intercept_
         """
-        raise NotImplementedError()
+        if self.include_intercept_:
+            X = np.c_[np.ones(X.shape[0]), X]
+        penalty = None
+        if self.penalty_ == "l1":
+            penalty = L1()
+        elif self.penalty_ == "l2":
+            penalty = L2()
+        initial_weights = np.random.normal(0, 1, X.shape[1]) / np.sqrt(X.shape[1])
+        f = RegularizedModule(LogisticModule(), penalty, self.lam_, initial_weights)
+        self.coefs_ = self.solver_.fit(f, X, y)
+        self.fitted_ = True
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -104,7 +114,10 @@ class LogisticRegression(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        prob_pred = self.predict_proba(X)
+        prob_pred[prob_pred >= self.alpha_] = 1
+        prob_pred[prob_pred < self.alpha_] = 0
+        return prob_pred
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
         """
@@ -120,7 +133,9 @@ class LogisticRegression(BaseEstimator):
         probabilities: ndarray of shape (n_samples,)
             Probability of each sample being classified as `1` according to the fitted model
         """
-        raise NotImplementedError()
+        if self.include_intercept_:
+            X = np.c_[np.ones(X.shape[0]), X]
+        return 1 / (1 + np.exp(-(X @ self.coefs_)))
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -139,4 +154,5 @@ class LogisticRegression(BaseEstimator):
         loss : float
             Performance under misclassification error
         """
-        raise NotImplementedError()
+        from IMLearn.metrics.loss_functions import misclassification_error
+        return misclassification_error(y, self._predict(X))
